@@ -1,7 +1,6 @@
 package Text::vFile;
 
 use strict;
-use warnings;
 
 =head1 NAME
 
@@ -113,7 +112,8 @@ sub source {
 }
 
 # Classes inject their desired mappings
-our %classMap=(
+use vars qw(%classMap);
+%classMap=(
 
     VFILE     => "Text::vFile::Base",
 
@@ -169,6 +169,7 @@ sub next {
     if ( $line =~ /\000/ ) {
 
         eval "use Encode;";
+        die "Cannot decode this file - need the Encode module; $@\n" if $@;
 
         if ($line =~ /\000\000\000/) {
 

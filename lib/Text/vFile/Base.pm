@@ -1,7 +1,6 @@
 package Text::vFile::Base;
 
 use strict;
-use warnings;
 
 =head1 NAME
 
@@ -65,7 +64,7 @@ use Data::Dumper; $Data::Dumper::Indent=1; $Data::Dumper::Sortkeys=1;
 use lib qw(lib);
 use Text::vFile;
 
-our $typeSequence=1;
+my $typeSequence=1;
 
 sub _nextSequence {
     return $typeSequence++;
@@ -79,7 +78,7 @@ and return as an array/array ref.
 =cut
 
 sub load {
-    Text::vFile::Load(@_);
+    Text::vFile::load(@_);
 }
 
 =item $loader = $class->loader( key => value )
