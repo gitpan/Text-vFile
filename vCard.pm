@@ -6,7 +6,7 @@ package Text::vCard;
 # See this module for your basic parser functions
 use Text::vFile::Base;
 use vars qw(@ISA);
-push @ISA, qw(Text::vCard::Base);
+push @ISA, qw(Text::vFile::Base);
 
 # Tell vFile that BEGIN:VCARD line creates one of these objects
 $Text::vFile::classMap{'VCARD'}=__PACKAGE__;

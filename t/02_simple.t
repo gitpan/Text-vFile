@@ -2,9 +2,9 @@
 use Test::More qw(no_plan);
 
 
-use Text::vFile;
+use Text::vFile::Base;
 
-my $vfile=Text::vFile->new( source => "t/02_simple.dat" );
+my $vfile=Text::vFile::Base->loader( source => "t/02_simple.dat" );
 
 use Data::Dumper;
 $Data::Dumper::Indent=1;

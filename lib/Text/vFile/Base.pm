@@ -78,7 +78,8 @@ and return as an array/array ref.
 =cut
 
 sub load {
-    Text::vFile::load(@_);
+    shift;
+    Text::vFile->load(@_);
 }
 
 =item $loader = $class->loader( key => value )
@@ -89,8 +90,8 @@ if you want to iterate through a stack of vcards at your leisure.
 =cut
 
 sub loader {
-    my $class=shift;
-    return Text::vFile::new(@_);
+    shift;
+    return Text::vFile->new(@_);
 }
 
 =back 
