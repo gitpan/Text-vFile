@@ -1,10 +1,9 @@
 
 use Test::More qw(no_plan);
 
-
 use Text::vFile::Base;
 
-my $vfile=Text::vFile::Base->loader( source_file => "t/02_simple.dat" );
+my $vfile=Text::vFile::Base->loader( source_file => "t/03_multi.dat" );
 
 use Data::Dumper;
 $Data::Dumper::Indent=1;
@@ -18,4 +17,5 @@ while (my $card = $vfile->next) {
     ok ( exists $card->{'VERSION'}, "VERSION loaded");
 }
 
-is ( $count, 1, "Just one card loaded");
+is ( $count, 6, "Six loaded");
+

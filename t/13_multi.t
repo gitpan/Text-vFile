@@ -1,10 +1,14 @@
 
 use Test::More qw(no_plan);
 
-
 use Text::vFile::Base;
 
-my $vfile=Text::vFile::Base->loader( source_file => "t/02_simple.dat" );
+# Parallels 03_multi - but will pass the data as a string to parser
+open DAT, "t/03_multi.dat";
+undef $/;
+my $dat=<DAT>;
+
+my $vfile=Text::vFile::Base->loader( source_text => $dat );
 
 use Data::Dumper;
 $Data::Dumper::Indent=1;
@@ -18,4 +22,4 @@ while (my $card = $vfile->next) {
     ok ( exists $card->{'VERSION'}, "VERSION loaded");
 }
 
-is ( $count, 1, "Just one card loaded");
+is ( $count, 6, "six cards loaded");

@@ -1,10 +1,14 @@
 
 use Test::More qw(no_plan);
 
-
 use Text::vFile::Base;
 
-my $vfile=Text::vFile::Base->loader( source_file => "t/02_simple.dat" );
+# Parallels 02_simple - but will pass the data as a string to parser
+open DAT, "t/02_simple.dat";
+undef $/;
+my $dat=<DAT>;
+
+my $vfile=Text::vFile::Base->loader( source_text => $dat );
 
 use Data::Dumper;
 $Data::Dumper::Indent=1;

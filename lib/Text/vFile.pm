@@ -20,9 +20,16 @@ the module can write your objects back to a data file.
 
     # OR
     
-    my $reader = Text::vFile->new( source => "foo.vCard" );
+    my $reader = Text::vFile->new( source_file => "foo.vCard" );
     while ( my $object = $reader->next ) {
         spam ( $object );
+    }
+
+    # OR
+    
+    my $reader = Text::vFile->new( source_text => $vcard_data );
+    while ( my $vcard = <$reader> ) {
+        spam ( $vcard );
     }
 
 
@@ -52,23 +59,63 @@ The way this processor works is that it reads the vFile line by line.
     elaborate data types such as N, ADR, etc. need special treatment and are declared explititly
     in classes as "load_XXX" such as "load_N"
 
-You should be able to override and extend the processing by taking Text::vCard.pm as your example
+You should be able to override and extend the processing by taking Text::vFile::Base.pm as your example
 and adjusting as necessary.
 
-The resulting data structure is a bit bulky - but is such that it can express vCard data completely and
+The resulting data structure is a bit bulky - but is such that it can express vFile data completely and
 reliably
 
-  Put in a dump of a vCard here
+  $VAR1 = bless( {
 
-=head1 DEPENDENCIES
+  'EMAIL' => [
+    {
+      'attr' => {
+        'email' => [
+          'HOME'
+        ],
+        'type' => []
+      },
+      'sequence' => 1,
+      'type' => {
+        'internet' => 1
+      },
+      'value' => 'email\\@domain.com'
+    }
+  ],
+  'TITLE' => {
+    'value' => 'Job Title'
+  },
+  'X-ICQ' => [
+    {
+      'attr' => {
+        'type' => [
+          'WORK',
+          'pref'
+        ]
+      },
+      'sequence' => 11,
+      'type' => {
+        'pref' => 1,
+        'work' => 1
+      },
+      'value' => '12341234'
+    }
+  ],
+  '_lines' => [
+    'VERSION:2.1',
+    'N:Person;Test,Given;;;',
+    'FN:Test Person',
+    ....
+  ] 
+  }, "Text::vCard");
 
- DateTime::Format::ICal
+=head1 METHODS
 
 =over 4
 
 =item \@objects = load( filename [, filename ... ] )
 
-Loads the vFiles and returns an array of objects.
+Loads the vFiles found in filenames supplied and returns all found items an array of objects.
 
 =cut
 
@@ -77,13 +124,38 @@ sub load {
 	my $self=shift;
        $self=$self->new unless ref($self);
 
-    my @objects;
+    my @objects=();
 
 	foreach my $fn (@_) {
 
-        $self->source( $fn );
+        $self->source_file( $fn );
+        while ( my $object = $self->next ) {
+            push @objects, $object;
+        }
 
-        until ( $self->eof ) {
+    }
+
+    return wantarray ? @objects : \@objects;
+
+}
+
+=item \@objects = parse( string [, string ... ] )
+
+Loads the vFiles found in the strings passed in and returns all found items as objects.
+
+=cut
+
+sub parse {
+
+	my $self=shift;
+       $self=$self->new unless ref($self);
+
+    my @objects=();
+
+	foreach my $text (@_) {
+
+        $self->source_text( $text );
+        until ( $self->eod ) {
             push @objects, $self->next;
         }
 
@@ -97,17 +169,49 @@ sub _open {
 
     my $self=shift;
 
-    warn "No source filename supplied" && return unless $self->{'source'};
+    warn "No filename supplied" && return unless $self->{'source_file'};
     
-    open ($self->{'_fh'}, $self->{'source'}) or warn "Cannot open $self->{'source'}\n";
+    open ($self->{'fh'}, $self->{'source_file'}) or warn "Cannot open $self->{'source_file'}\n";
 
 }
 
-sub source {
+=item $loader->source_file( name )
+
+Sets this filename to be the source of vfile data. Only one filename, can contain many vfile entries.
+
+=cut
+
+sub source_file {
 
     my $self=shift;
-    $self->{'source'} = shift if @_;
-    return $self->{'source'};
+
+    if (@_) {
+        $self->{'source_file'} = shift;
+        delete $self->{'fh'}; 
+        delete $self->{'source_text'}; 
+    }
+
+    return $self->{'source_file'};
+
+}
+
+=item $loader->source_text( $scalar )
+
+Sets this scalar to be the source of vfile data. Can contain many vfile.
+
+=cut
+
+sub source_text {
+
+    my $self=shift;
+
+    if (@_) {
+        $self->{'source_text'} = shift;
+        delete $self->{'fh'}; 
+        delete $self->{'source_file'}; 
+    }
+
+    return $self->{'source_text'};
 
 }
 
@@ -124,9 +228,10 @@ use vars qw(%classMap);
 
 );
 
-=item $object = class->new
+=item $object = class->new( options )
 
-Make a new object
+Create a new vfile loader. You will need to set its source to either a source_file or source_text.
+Then use the next method to get each next object.
 
 =cut
 
@@ -149,20 +254,33 @@ Gets next object from vfile
 
 =cut
 
+use overload
+        '<>' => \&next,
+        fallback => 1,
+;
+
 
 sub next {
 
     my $self=shift;
 
-    $self->_open unless $self->{'_fh'};
+    if ($self->{'source_file'}) {
+        $self->_open unless $self->{'fh'};
+    }
+    my $fh=$self->{'fh'};
 
-    my $fh  = $self->{'_fh'} || return undef;
+    if ($self->{'source_text'}) {
+        $self->{'text'} = [ split (/[\r\n]+/, $self->{'source_text'}) ] unless $self->{'text'};
+    }
 
-	my $parent=shift;
+    return () unless $fh || $self->{'text'};
 
-	$self->{'_parent'}=$parent if ref $parent;
+    # my $parent=shift;
+    # $self->{'_parent'}=$parent if ref $parent;
 
-    my $line=<$fh> || return undef;
+    my $line = $fh ? <$fh> : shift @{$self->{'text'}};
+    return if $self->eod;
+    
     my $decoder;
 
     # UTF-16/32 detection
@@ -194,9 +312,10 @@ sub next {
     $line = $decoder->decode( $line ) if $decoder;
 
     # VFILE class detection
-
+    #   - see BEGIN until found or return at EOD contition
     until ( $line =~ /^BEGIN:/i ) {
-        $line = <$fh> || return undef;
+        $line = $fh ? <$fh> : shift @{$self->{'text'}};
+        return if $self->eod;
         $line = $decoder->decode( $line ) if $decoder;
     }
 
@@ -213,9 +332,11 @@ sub next {
 
     my @lines=();
     my $ended=0;
-    while ( <$fh> ) {
+    until ( $self->eod ) {
 
-        my $line = $decoder ? $decoder->decode($_) : $_;
+        $line = $fh ? <$fh> : shift @{$self->{'text'}};
+
+        $line = $decoder->decode($line) if $decoder;
         $line =~ s/[\r\n]+$//;
 
         # Sub object - like EVENT, etc.
@@ -296,8 +417,21 @@ sub next {
 }
 
 
-sub eof {
-    return eof $_[0]->{'fh'};
+=item $loader->eod
+
+Returns true if loader is at end of data for current source.
+
+=cut
+
+sub eod {
+
+    if ( $_[0]->{'fh'} ) {
+        return eof $_[0]->{'fh'};
+    }
+
+    return 0 if exists $_[0]->{'text'} && @{$_[0]->{'text'}};
+    return 1;
+
 }
 
 =item $object->error
@@ -332,12 +466,14 @@ LICENSE file included with this module.
 
 =head1 ACKNOWLEDGEMENTS
 
- Leo - for a very productive exchange on how this should work!
+ Leo - for a very productive exchange on how this should work plus suffering
+       through a few growing pains. 
+
  Net::iCal - whose loading code inspired me for mine
 
 =head1 SEE ALSO
 
-RFC 2426, Text::iCal
+RFC 2425, 2426, 2445
 
 =cut
 

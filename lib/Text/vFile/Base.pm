@@ -53,11 +53,6 @@ If the source has vcards in it - that's what they're going to get.
 =cut
 
 
-use overload
-        '<>' => \&next,
-        fallback => 1,
-;
-
 use Carp; $SIG{__DIE__} = \&Carp::confess;
 use Data::Dumper; $Data::Dumper::Indent=1; $Data::Dumper::Sortkeys=1;
 
@@ -69,6 +64,10 @@ my $typeSequence=1;
 sub _nextSequence {
     return $typeSequence++;
 }
+
+=head1 CONVENIENCE METHODS
+
+=over 4
 
 =item @objects = $class->load( key => value )
 
@@ -94,8 +93,6 @@ sub loader {
     return Text::vFile->new(@_);
 }
 
-=back 
-
 =item $object = class->new
 
 Make a new object object that represents this vFile data being parsed.
@@ -114,6 +111,8 @@ sub new {
 	return $self;
 
 }
+
+=back
 
 =head1 DATA HANDLERS
 
@@ -312,6 +311,7 @@ sub load_singleBinary {
         }
 
     } else {
+        
         # This must be an URL
 
     }
@@ -320,6 +320,52 @@ sub load_singleBinary {
 	die "_singleBinary not done\n";
 }
 
+
+=item @split = $self->split_value($line [, $delimiter]);
+
+This method returns a array ref containing the $line elements
+split by the delimiter, but ignores escaped delimiters.
+If no $delimiter is supplied then a comma "," is used by default.
+
+=cut
+
+sub split_value {
+	my ($self, $line, $delim) = @_;
+
+	$delim = ',' unless $delim;
+
+	my @list = split(/(?<!\\)$delim/,$line);
+
+	return wantarray ? @list : \@list;
+}
+
+=back
+
+=head1 SUPPORT
+
+For technical support please email to jlawrenc@cpan.org ... 
+for faster service please include "Text::vFile" and "help" in your subject line.
+
+=head1 AUTHOR
+
+ Jay J. Lawrence - jlawrenc@cpan.org
+ Infonium Inc., Canada
+ http://www.infonium.ca/
+
+=head1 COPYRIGHT
+
+Copyright (c) 2003 Jay J. Lawrence, Infonium Inc. All rights reserved.
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+=head1 ACKNOWLEDGEMENTS
+
+=head1 SEE ALSO
+
+=cut
 
 
 1;
